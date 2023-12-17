@@ -1,4 +1,4 @@
-# AnomalyDiffusion: Few-Shot Anomaly Generation with Diffusion Model (AAAI 2024)
+# AnomalyDiffusion: Few-Shot Anomaly Image Generation with Diffusion Model (AAAI 2024)
 
 [![arXiv](https://img.shields.io/badge/arXiv-2208.01618-b31b1b.svg)](https://arxiv.org/abs/2312.05767)
 
