@@ -1,8 +1,19 @@
 # AnomalyDiffusion: Few-Shot Anomaly Image Generation with Diffusion Model (AAAI 2024)
 
-[![arXiv](https://img.shie[README[README.md](..%2F212-suppl%2Fcode%2FREADME.md).md](..%2F212-suppl%2Fcode%2FREADME.md)lds.io/badge/arXiv-2312.05767-b31b1b.svg)](https://arxiv.org/abs/2312.05767)
+
+<!-- <br> -->
+[Teng Hu<sup>1#</sup>](https://sjtuplayer.github.io/), [Jiangning Zhang<sup>2#</sup>](https://zhangzjn.github.io/),  [Ran Yi<sup>1*</sup>](https://yiranran.github.io/), [Yuzhen Du<sup>1</sup>](https://github.com/YuzhenD),  [Xu Chen<sup>2</sup>](https://scholar.google.com/citations?hl=zh-CN&user=1621dVIAAAAJ), [Liang Liu<sup>2</sup>](https://scholar.google.com/citations?hl=zh-CN&user=Kkg3IPMAAAAJ), [Yabiao Wang<sup>2</sup>](https://scholar.google.com/citations?hl=zh-CN&user=xiK4nFUAAAAJ), and [Chengjie Wang<sup>1,2</sup>](https://scholar.google.com/citations?hl=zh-CN&user=fqte5H4AAAAJ).
+<!-- <br> -->
+
+(#Equal contribution,*Corresponding author)
+
+[<sup>1</sup>Shanghai Jiao Tong University](https://www.sjtu.edu.cn/), 
+[<sup>2</sup>Youtu Lab, Tencent](https://open.youtu.qq.com/#/open)
+
+[![arXiv](https://img.shields.io/badge/arXiv-2312.05767-b31b1b.svg)](https://arxiv.org/abs/2312.05767)
 
 [Project Page](https://sjtuplayer.github.io/anomalydiffusion-page/)
+
 
 
 ## Todo (Latest update: 2024/02/05)
