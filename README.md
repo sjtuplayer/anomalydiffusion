@@ -70,8 +70,6 @@ After Downloading the checkpoints, you can test the anomaly detection accuracy:
 python test-unet.py --data_path $path_to_mvtec --checkpoint_path $path_to_ckpt --sample_name=all
 ```
 
-(Note that the checkpoint for screw will be released later.)
-
 ## Citation
 
 If you make use of our work, please cite our paper:
