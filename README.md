@@ -16,16 +16,23 @@
 
 
 
-## Todo (Latest update: 2024/02/05)
+## Todo (Latest update: 2024/02/22)
 - [x] **Release the training code
+- [x] **Release the UNet checkpoints for testing anomaly detection accuracy
+- [ ] **Release checkpoints for anomalydiffusion.
 - [ ] **Release the inference code
 - [ ] **Release the data
 
 
 ## Prepare
 
+
 ### Prepare the environment
 ```
+Ubuntu
+python 3.8
+cuda==11.8
+gcc==7.5.0
 conda env create -f environment.yaml
 conda activate Anomalydiffusion
 ```
@@ -50,6 +57,20 @@ CUDA_VISIBLE_DEVICES=$gpu_id python main.py --spatial_encoder_embedding --data_e
   --init_word anomaly  --mvtec_path=$path_to_mvtec_dataset
 
 ```
+
+## Infernece
+
+You can download the checkpoints for the UNet models trained on the generated data from 
+[Google Drive](https://drive.google.com/drive/folders/1kcOdfQrvWeJyliGTYJ4HXKU5ccfn7t96?usp=sharing)
+or [百度网盘](https://pan.baidu.com/s/16NqURqkEmzlWlMkV5NfuLw) (提取码: 2024). 
+
+After Downloading the checkpoints, you can test the anomaly detection accuracy:
+
+```
+python test-unet.py --data_path $path_to_mvtec --checkpoint_path $path_to_ckpt --sample_name=all
+```
+
+(Note that the checkpoint for screw will be released later.)
 
 ## Citation
 
