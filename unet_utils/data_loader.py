@@ -18,7 +18,6 @@ class MVTecDRAEMTestDataset_partial(Dataset):
             l = len(img_files) // 3
             if anomaly_name=='good':
                 l = 0
-            #l=0
             self.images += [os.path.join(img_path, file_name) for file_name in img_files[l:]]
     def __len__(self):
         return len(self.images)

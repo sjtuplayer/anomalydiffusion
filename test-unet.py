@@ -165,6 +165,7 @@ if __name__=="__main__":
                     'toothbrush',
                     'metal_nut',
                     'hazelnut',
+                    'screw',
                     'grid',
                     'wood'
                     ]
