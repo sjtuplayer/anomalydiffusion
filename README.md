@@ -19,10 +19,22 @@
 ## Todo (Latest update: 2024/02/22)
 - [x] **Release the training code
 - [x] **Release the UNet checkpoints for testing anomaly detection accuracy
+- [x] **Release the data
 - [ ] **Release checkpoints for anomalydiffusion.
 - [ ] **Release the inference code
-- [ ] **Release the data
 
+
+
+## Data and checkpoints
+
+The generated anomaly data of MvTec can be downloaded from [Google Drive](https://drive.google.com/file/d/1yzsZdW_xS-v4GprE2KQmQ1EbIWyGyFcG/view?usp=sharing)
+or [百度网盘](https://pan.baidu.com/s/12gKMfc64sy3JDx5FAR-ytQ) (提取码: 0306).
+(Note that we have filtered out some data with poor generation effects. Therefore, some classes
+have relatively fewer samples.)
+
+You can download the checkpoints for the UNet models trained on the generated data from 
+[Google Drive](https://drive.google.com/drive/folders/1kcOdfQrvWeJyliGTYJ4HXKU5ccfn7t96?usp=sharing)
+or [百度网盘](https://pan.baidu.com/s/1Xoe__ODeq_YrVc9lA-7B_A) (提取码: 0306).
 
 ## Prepare
 
@@ -62,7 +74,7 @@ CUDA_VISIBLE_DEVICES=$gpu_id python main.py --spatial_encoder_embedding --data_e
 
 You can download the checkpoints for the UNet models trained on the generated data from 
 [Google Drive](https://drive.google.com/drive/folders/1kcOdfQrvWeJyliGTYJ4HXKU5ccfn7t96?usp=sharing)
-or [百度网盘](https://pan.baidu.com/s/16NqURqkEmzlWlMkV5NfuLw) (提取码: 2024). 
+or [百度网盘](https://pan.baidu.com/s/1Xoe__ODeq_YrVc9lA-7B_A) (提取码: 0306). 
 
 After Downloading the checkpoints, you can test the anomaly detection accuracy:
 
