@@ -16,7 +16,7 @@
 
 
 
-## Todo (Latest update: 2024/02/22)
+## Todo (Latest update: 2024/03/02)
 - [x] **Release the training code
 - [x] **Release the UNet checkpoints for testing anomaly detection accuracy
 - [x] **Release the data
