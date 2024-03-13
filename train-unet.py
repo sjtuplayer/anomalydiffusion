@@ -211,9 +211,7 @@ if __name__=="__main__":
 
     with torch.cuda.device(args.gpu_id):
         train_on_device(picked_classes, args)
-
-#用textinversion生成的数据训练
-#python train-unet.py --data_path /home/huteng/textual_inversion-main/generated_dataset2/  --save_path ./ --mvtec_path=/home/huteng/dataset/mvtec_anomaly_detection/ --sample_name=capsule
+#python train-unet.py --data_path $path_to_the_generated_data  --save_path ./ --mvtec_path=$path_to_mvtec --sample_name=capsule
 
 
 
