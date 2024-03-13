@@ -207,7 +207,7 @@ def get_parser(**parser_kwargs):
 
     parser.add_argument("--data_root",
                         type=str,
-                        defalut='test-imgs/hazelnut'
+                        defalut='test-imgs/hazelnut',
                         help="Path to directory with training images")
 
     parser.add_argument("--embedding_manager_ckpt",

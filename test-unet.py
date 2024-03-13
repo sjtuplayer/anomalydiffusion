@@ -175,6 +175,4 @@ if __name__=="__main__":
 
     with torch.cuda.device(args.gpu_id):
         test(obj_list,args.data_path, args.checkpoint_path)
-#测试我们的增广方法训练的unet  ******************
-#python test-unet.py --data_path /home/huteng/dataset/mvtec_anomaly_detection/ --checkpoint_path /home/huteng/anomaly_detection/DRAEM-main/checkpoints/github-opensourced/ --sample_name=all
 
