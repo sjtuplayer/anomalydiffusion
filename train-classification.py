@@ -32,6 +32,7 @@ def test(args,obj_name, model,anomaly_names):
         prediction = torch.argmax(y_pred, 1)
         correct = (prediction == label).sum().float()
         print("Accuracy: %.4f"%(correct/len(label)))
+    return correct/len(label)
 
 
 def train_on_device(obj_names, args):
@@ -57,6 +58,7 @@ def train_on_device(obj_names, args):
         criterion = nn.CrossEntropyLoss()
         dataloader = DataLoader(dataset, batch_size=args.bs,
                                 shuffle=True, num_workers=16)
+        max_acc=0
         for epoch in range(args.epochs):
             model.train()
             print("Epoch: "+str(epoch),end=' ')
@@ -72,8 +74,11 @@ def train_on_device(obj_names, args):
                 optimizer.step()
 
             scheduler.step()
-            torch.save(model.state_dict(), os.path.join(args.checkpoint_path, run_name+".pckl"))
-            test(obj_name,model,anomaly_names)
+            acc = test(obj_name, model, anomaly_names)
+            if acc> max_acc:
+                max_acc=acc
+                torch.save(model.state_dict(), os.path.join(args.checkpoint_path, run_name+".pckl"))
+
 if __name__=="__main__":
     import argparse
 
@@ -87,7 +92,6 @@ if __name__=="__main__":
     parser.add_argument(
         "--reverse",
         action="store_true", default=False,
-        help="whether use ht encoder",
     )
     parser.add_argument('--checkpoint_path', default='checkpoints/classification', type=str)
 

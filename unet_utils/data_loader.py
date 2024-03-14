@@ -133,7 +133,7 @@ class MVTec_Anomaly_Detection(Dataset):
 
 class MVTec_classification_train(Dataset):
     def __init__(self, args,sample_name):
-        self.root_dir = '%s/%s'%(args.data_path,sample_name)
+        self.root_dir = '%s/%s'%(args.mvtec_path,sample_name)
         self.anomaly_names=os.listdir(self.root_dir)
         self.img_paths=[]
         self.labels=[]

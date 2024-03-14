@@ -612,7 +612,7 @@ class TransformerWrapper(nn.Module):
         embedded_x = self.token_emb(x)
         
         if embedding_manager:
-            x = embedding_manager(x, embedded_x,**kwargs)
+            x,position = embedding_manager(x, embedded_x,**kwargs)
         else:
             x = embedded_x
 
@@ -646,5 +646,5 @@ class TransformerWrapper(nn.Module):
             attn_maps = list(map(lambda t: t.post_softmax_attn, intermediates.attn_intermediates))
             return out, attn_maps
 
-        return out
+        return out,position
 

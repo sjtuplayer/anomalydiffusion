@@ -57,21 +57,13 @@ def get_parser(**parser_kwargs):
         help="whether use ht encoder",
     )
     parser.add_argument(
-        "--random_mask",
-        action="store_true", default=False,
-        help="whether use ht encoder",
-    )
-    parser.add_argument(
-        "--mvtec_path",
-        type=str, default=None,
-        help="mvtec_path",
-        required=True
-    )
-    parser.add_argument(
         "--data_enhance",
         action="store_true", default=False,
         help="whether use ht encoder",
     )
+    parser.add_argument("--train_on_visa",
+                        action="store_true", default=False,
+                        help="Word to use as source for initial token embedding")
     parser.add_argument(
         "--attention_mask",
         action="store_true", default=False,
@@ -207,6 +199,8 @@ def get_parser(**parser_kwargs):
 
     parser.add_argument("--data_root",
                         type=str,
+                        default='test-imgs/hazelnut',
+                        required=False,
                         help="Path to directory with training images")
 
     parser.add_argument("--embedding_manager_ckpt",
@@ -221,18 +215,12 @@ def get_parser(**parser_kwargs):
     parser.add_argument("--init_word",
                         type=str,
                         help="Word to use as source for initial token embedding")
-
+    parser.add_argument("--mvtec_path",
+                        type=str,
+                        help="Path to mvtec")
     return parser
 
-parser = get_parser()
-parser = Trainer.add_argparse_args(parser)
 
-opt, unknown = parser.parse_known_args()
-# import wandb
-# wandb.init(config=opt,
-#            project='anomaly diffusion',
-#            name='anomaly diffusion',
-#             reinit = True)
 def nondefault_trainer_args(opt):
     parser = argparse.ArgumentParser()
     parser = Trainer.add_argparse_args(parser)
@@ -420,8 +408,8 @@ class ImageLogger(Callback):
         self.log_on_batch_idx = log_on_batch_idx
         self.log_images_kwargs = log_images_kwargs if log_images_kwargs else {}
         self.log_first_step = log_first_step
-        self.log_images_kwargs['inpaint'] = True
-        self.log_images_kwargs['sample'] = False
+        self.log_images_kwargs['inpaint'] = False
+        self.log_images_kwargs['sample']=True
     @rank_zero_only
     def _testtube(self, pl_module, images, batch_idx, split):
         for k in images:
@@ -456,7 +444,6 @@ class ImageLogger(Callback):
             os.makedirs(os.path.split(path)[0], exist_ok=True)
             Image.fromarray(grid).save(path)
 
-            #wandb.log({"%s"%k: wandb.Image(str(path))}, step= batch_idx)
     def log_img(self, pl_module, batch, batch_idx, split="train"):
         check_idx = batch_idx if self.log_on_batch_idx else pl_module.global_step
         # print(check_idx,self.batch_freq,split)
@@ -554,7 +541,48 @@ class ModeSwapCallback(Callback):
             self.is_frozen = False
             trainer.optimizers = [pl_module.configure_opt_model()]
 
+
 if __name__ == "__main__":
+    # custom parser to specify config files, train, test and debug mode,
+    # postfix, resume.
+    # `--key value` arguments are interpreted as arguments to the trainer.
+    # `nested.key=value` arguments are interpreted as config parameters.
+    # configs are merged from left-to-right followed by command line parameters.
+
+    # model:
+    #   base_learning_rate: float
+    #   target: path to lightning module
+    #   params:
+    #       key: value
+    # data:
+    #   target: main.DataModuleFromConfig
+    #   params:
+    #      batch_size: int
+    #      wrap: bool
+    #      train:
+    #          target: path to train dataset
+    #          params:
+    #              key: value
+    #      validation:
+    #          target: path to validation dataset
+    #          params:
+    #              key: value
+    #      test:
+    #          target: path to test dataset
+    #          params:
+    #              key: value
+    # lightning: (optional, has sane defaults and can be specified on cmdline)
+    #   trainer:
+    #       additional arguments to trainer
+    #   logger:
+    #       logger to instantiate
+    #   modelcheckpoint:
+    #       modelcheckpoint to instantiate
+    #   callbacks:
+    #       callback1:
+    #           target: importpath
+    #           params:
+    #               key: value
 
     now = datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
 
@@ -563,7 +591,10 @@ if __name__ == "__main__":
     # (in particular `main.DataModuleFromConfig`)
     sys.path.append(os.getcwd())
 
+    parser = get_parser()
+    parser = Trainer.add_argparse_args(parser)
 
+    opt, unknown = parser.parse_known_args()
     if opt.name and opt.resume:
         raise ValueError(
             "-n/--name and -r/--resume cannot be specified both."
@@ -599,12 +630,16 @@ if __name__ == "__main__":
         else:
             name = ""
 
-        # if opt.datadir_in_name:
-        #     now = os.path.basename(os.path.normpath(opt.data_root)) + now
-
+        if opt.datadir_in_name:
+            now = os.path.basename(os.path.normpath(opt.data_root)) + now
+        # print(now,name,opt.postfix)
         nowname = now + name + opt.postfix
-        logdir = os.path.join(opt.logdir, nowname)
-    logdir=os.path.join(opt.logdir, 'anomaly-checkpoints')
+        # logdir = os.path.join(opt.logdir, nowname)
+        logdir=os.path.join(opt.logdir,'mask-checkpoints/%s-%s'%(opt.sample_name,opt.anomaly_name))
+        if os.path.exists(logdir):
+            print('dir_exists!')
+            exit()
+
     ckptdir = os.path.join(logdir, "checkpoints")
     cfgdir = os.path.join(logdir, "configs")
     seed_everything(opt.seed)
@@ -640,6 +675,7 @@ if __name__ == "__main__":
 
         if opt.init_word:
             config.model.params.personalization_config.params.initializer_words[0] = opt.init_word
+
         if opt.actual_resume:
             model = load_model_from_config(config, opt.actual_resume)
         else:
@@ -725,7 +761,7 @@ if __name__ == "__main__":
                 }
             },
             "image_logger": {
-                "target": "main.ImageLogger",
+                "target": "train_mask.ImageLogger",
                 "params": {
                     "batch_frequency": 750,
                     "max_images": 4,
@@ -754,7 +790,8 @@ if __name__ == "__main__":
             callbacks_cfg = lightning_config.callbacks
         else:
             callbacks_cfg = OmegaConf.create()
-
+        print(callbacks_cfg)
+        callbacks_cfg.image_logger.target='train_mask.ImageLogger'
         if 'metrics_over_trainsteps_checkpoint' in callbacks_cfg:
             print(
                 'Caution: Saving checkpoints every n train steps without deleting. This might require some free space.')
@@ -778,39 +815,28 @@ if __name__ == "__main__":
             callbacks_cfg.ignore_keys_callback.params['ckpt_path'] = trainer_opt.resume_from_checkpoint
         elif 'ignore_keys_callback' in callbacks_cfg:
             del callbacks_cfg['ignore_keys_callback']
-
+        trainer_opt.max_steps=30001
         trainer_kwargs["callbacks"] = [instantiate_from_config(callbacks_cfg[k]) for k in callbacks_cfg]
         trainer_kwargs["max_steps"] = trainer_opt.max_steps
         trainer = Trainer.from_argparse_args(trainer_opt, **trainer_kwargs)
         trainer.logdir = logdir  ###
-        if opt.spatial_encoder_embedding:
-            config.data.params.train.params.mvtec_path = opt.mvtec_path
-            config.data.params.train.target = 'ldm.data.personalized.Personalized_mvtec_encoder'
-            config.data.params.train.params.data_enhance=True
-            if opt.random_mask:
-                config.data.params.train.params.random_mask = True
-            config.data.params.validation.params.mvtec_path = opt.mvtec_path
-            config.data.params.validation.target = 'ldm.data.personalized.Personalized_mvtec_encoder'
-            config.data.params.validation.params.set = 'validate'
-        elif opt.spatial_encoder:
-            config.data.params.train.target = 'ldm.data.personalized.PersonalizedBase_json'
-            config.data.params.validation.target = 'ldm.data.personalized.PersonalizedBase_json'
-            #config.data.params.train.params.data_root = opt.data_root + '/train'
-        # data
-        elif opt.test_dataset:
-            config.data.params.train.target = 'ldm.data.personalized.Personalized_mvtec'
-            config.data.params.train.params.sample_name = opt.sample_name
-            config.data.params.train.params.anomaly_name = opt.anomaly_name
 
-            config.data.params.validation.target = 'ldm.data.personalized.Personalized_mvtec'
-            config.data.params.validation.params.sample_name = opt.sample_name
-            config.data.params.validation.params.anomaly_name = opt.anomaly_name
-        else:
-            config.data.params.train.params.data_root = opt.data_root+'/train'
-            config.data.params.validation.params.data_root = opt.data_root+'/test'
+        config.data.params.train.target = 'ldm.data.personalized.Personalized_mvtec_mask'
+        config.data.params.train.params.mvtec_path = opt.mvtec_path
+        config.data.params.train.params.sample_name = opt.sample_name
+        config.data.params.train.params.anomaly_name = opt.anomaly_name
+        config.data.params.train.params.train_on_visa = opt.train_on_visa
+        config.data.params.validation.target = 'ldm.data.personalized.Personalized_mvtec_mask'
+        config.data.params.validation.params.mvtec_path = opt.mvtec_path
+        config.data.params.validation.params.sample_name = opt.sample_name
+        config.data.params.validation.params.anomaly_name = opt.anomaly_name
+        config.data.params.validation.params.train_on_visa = opt.train_on_visa
         #data = instantiate_from_config(config.data)
 
         data = instantiate_from_config(config.data)
+        # NOTE according to https://pytorch-lightning.readthedocs.io/en/latest/datamodules.html
+        # calling these ourselves should not be necessary but it is.
+        # lightning still takes care of proper multiprocessing though
         data.prepare_data()
         data.setup()
         print("#### Data #####")

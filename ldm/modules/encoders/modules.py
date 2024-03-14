@@ -119,8 +119,8 @@ class BERTEmbedder(AbstractEncoder):
         self.last_dict = kwargs.copy()
         self.last_dict['text'] = text
         self.last_dict['x'] = tokens
-        z = self.transformer(tokens, return_embeddings=True, **kwargs)
-        return z
+        z,position = self.transformer(tokens, return_embeddings=True, **kwargs)
+        return z,position
     def forward2(self, img):
         self.last_dict['cond_img']=img
         z = self.transformer(return_embeddings=True,**self.last_dict)

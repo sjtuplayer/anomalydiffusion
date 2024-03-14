@@ -7,6 +7,7 @@ from einops import rearrange, repeat
 from torchvision import transforms
 from ldm.modules.diffusionmodules.util import checkpoint
 import math
+import os
 from torchvision.utils import save_image
 def exists(val):
     return val is not None
@@ -167,33 +168,65 @@ class CrossAttention(nn.Module):
             nn.Dropout(dropout)
         )
 
-    def forward(self, x, context=None, mask=None):
+    def forward(self, x, context=None, mask=None,weight_map=None,embedding_position=None):
         h = self.heads
 
-        q = self.to_q(x)
-        context = default(context, x)
+        q = self.to_q(x)  #((h*w)*c) -> ((h*w)*dim)
+        context = default(context, x)  #k*c->k*dim   (W*H)*c W*H=k
         k = self.to_k(context)
         v = self.to_v(context)
         q, k, v = map(lambda t: rearrange(t, 'b n (h d) -> (b h) n d', h=h), (q, k, v))
 
         sim = einsum('b i d, b j d -> b i j', q, k) * self.scale #i是pixel位置，j是tocken数
-        if exists(mask):
-            print(mask.shape)
-            x_width=int(math.sqrt(x.size(1)))
-            resize=transforms.Resize((x_width,x_width))
-            mask=resize(mask)
-            mask[mask < 0.5] = 0
-            mask[mask >= 0.5] = 1
-            mask=mask.bool()
-            mask = rearrange(mask, 'b ... -> b (...)')
-            max_neg_value = -torch.finfo(sim.dtype).max
-            mask = repeat(mask, 'b j -> (b h) () j', h=h)
-            mask=mask.repeat(1,sim.size(2),1).permute(0,2,1)            #32,1024,77
-            sim=mask.float()
+        # if exists(mask):
+        #     x_width=int(math.sqrt(x.size(1)))
+        #     resize=transforms.Resize((x_width,x_width))
+        #     mask=resize(mask)
+        #     mask[mask < 0.5] = 0
+        #     mask[mask >= 0.5] = 1
+        #     # print(x.shape, q.shape, k.shape, v.shape)
+        #     # print(sim.shape, mask.shape, x_width,mask.mean())
+        #     mask=mask.bool()
+        #     mask = rearrange(mask, 'b ... -> b (...)')
+        #     max_neg_value = -torch.finfo(sim.dtype).max
+        #     mask = repeat(mask, 'b j -> (b h) () j', h=h)
+        #     mask=mask.repeat(1,sim.size(2),1).permute(0,2,1)            #32,1024,77
+        #     sim=mask.float()
+        #     #sim.masked_fill_(~mask, max_neg_value)
+        if exists(weight_map):
+            # file_id = len(os.listdir('generated_dataset-tmp-AAR/wood/color/attention_map'))
+            # save_image(weight_map.unsqueeze(1), 'generated_dataset-tmp-AAR/wood/color/attention_map/%d.jpg' % file_id,
+            #            normalize=True)
+            x_width = int(math.sqrt(x.size(1)))
+            resize = transforms.Resize((x_width, x_width))
+            weight_map = resize(weight_map)
+            weight_map = rearrange(weight_map, 'b ... -> b (...)')
+            weight_map = repeat(weight_map, 'b j -> (b h) () j', h=h)
+            weight_map=weight_map.repeat(1,sim.size(2),1).permute(0,2,1)            #32,1024,77
+            for bi in range(weight_map.size(0)//h):
+                weight_map[bi*h:bi*h+h,:,1:embedding_position[bi,0].int()]=1
+                weight_map[bi * h:bi * h + h, :, embedding_position[bi,1].int():] = 1
+            sim=sim*weight_map
             #sim.masked_fill_(~mask, max_neg_value)
+        #print(sim.shape,v.shape)
         attn = sim.softmax(dim=-1)
-        if exists(mask):
-            attn.masked_fill_(~mask, 0)
+        # print(attn[:,:,1].sum())
+        # print(attn[:,1,:].sum())
+        # if exists(mask):
+        #     attn.masked_fill_(~mask, 0)
+        # try:
+        #     save_attn = rearrange(attn, '(b h) n d -> b n (h d)', h=h)
+        #     save_attn = save_attn[:, :, 5:10]
+        #     save_attn = rearrange(save_attn, 'b n d -> (b d) n')
+        #     print(save_attn.shape)
+        #     save_attn = save_attn.reshape(save_attn.size(0), 1, 32, 32)
+        #     print(save_attn.min(),save_attn.max())
+        #     for i in range(save_attn.size(0)):
+        #         save_attn[i] = (save_attn[i] - save_attn[i].min()) / (save_attn[i].max() - save_attn[i].min())
+        #         save_image(save_attn, 'attn2.jpg')
+        # except:
+        #     pass
+        # exit()
         out = einsum('b i j, b j d -> b i d', attn, v)
         out = rearrange(out, '(b h) n d -> b n (h d)', h=h)
         return self.to_out(out)
@@ -211,12 +244,12 @@ class BasicTransformerBlock(nn.Module):
         self.norm3 = nn.LayerNorm(dim)
         self.checkpoint = checkpoint
 
-    def forward(self, x, context=None,mask=None):
-        return checkpoint(self._forward, (x, context,mask), self.parameters(), self.checkpoint)
+    def forward(self, x, context=None,mask=None,weight_map=None,embedding_position=None):
+        return checkpoint(self._forward, (x, context,mask,weight_map,embedding_position), self.parameters(), self.checkpoint)
 
-    def _forward(self, x, context=None,mask=None):
+    def _forward(self, x, context=None,mask=None,weight_map=None,embedding_position=None):
         x = self.attn1(self.norm1(x)) + x
-        x = self.attn2(self.norm2(x), context=context,mask=mask) + x
+        x = self.attn2(self.norm2(x), context=context,mask=mask,weight_map=weight_map,embedding_position=embedding_position) + x
         x = self.ff(self.norm3(x)) + x
         return x
 
@@ -253,7 +286,7 @@ class SpatialTransformer(nn.Module):
                                               stride=1,
                                               padding=0))
 
-    def forward(self, x, context=None,mask=None):
+    def forward(self, x, context=None,**kwargs):
         # note: if no context is given, cross-attention defaults to self-attention
         b, c, h, w = x.shape
         x_in = x
@@ -261,7 +294,7 @@ class SpatialTransformer(nn.Module):
         x = self.proj_in(x)
         x = rearrange(x, 'b c h w -> b (h w) c')
         for block in self.transformer_blocks:
-            x = block(x, context=context,mask=mask)
+            x = block(x, context=context,**kwargs)
         x = rearrange(x, 'b (h w) c -> b c h w', h=h, w=w)
         x = self.proj_out(x)
         return x + x_in

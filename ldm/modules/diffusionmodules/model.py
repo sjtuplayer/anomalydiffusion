@@ -593,7 +593,7 @@ class Decoder(nn.Module):
 
 
         # end
-        if self.give_pre_end:
+        if self.give_pre_end: #不执行
             return h
 
         h = self.norm_out(h)
@@ -627,7 +627,7 @@ class Decoder(nn.Module):
                 h = self.up[i_level].upsample(h)
 
         # end
-        if self.give_pre_end:
+        if self.give_pre_end: #不执行
             return h
 
         h = self.norm_out(h)

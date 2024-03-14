@@ -330,7 +330,8 @@ class DDPM(pl.LightningModule):
         return loss, loss_dict
 
     def forward(self, x, *args, **kwargs):
-
+        # b, c, h, w, device, img_size, = *x.shape, x.device, self.image_size
+        # assert h == img_size and w == img_size, f'height and width of image must be {img_size}'
         t = torch.randint(0, self.num_timesteps, (x.shape[0],), device=self.device).long()
         return self.p_losses(x, t, *args, **kwargs)
 
@@ -505,7 +506,7 @@ class LatentDiffusion(DDPM):
         if optimze_together:
             self.spatial_encoder_and_embedding=True
             self.spatial_encoder =True
-        self.embedding_manager.prepare_spatial_encoder(l=l)
+        self.embedding_manager.prepare_spatial_encoder(l)
         if data_enhance:
             from utils import random_transform
             self.data_enhance=random_transform()
@@ -604,9 +605,10 @@ class LatentDiffusion(DDPM):
         return self.scale_factor * z
 
     def get_learned_conditioning(self, c,x=None,name=None):
+        position=None
         if self.cond_stage_forward is None:
             if hasattr(self.cond_stage_model, 'encode') and callable(self.cond_stage_model.encode):
-                c = self.cond_stage_model.encode(c, cond_img=x,embedding_manager=self.embedding_manager,name=name)
+                c,position = self.cond_stage_model.encode(c, cond_img=x,embedding_manager=self.embedding_manager,name=name)
                 if isinstance(c, DiagonalGaussianDistribution):
                     c = c.mode()
             else:
@@ -614,7 +616,7 @@ class LatentDiffusion(DDPM):
         else:
             assert hasattr(self.cond_stage_model, self.cond_stage_forward)
             c = getattr(self.cond_stage_model, self.cond_stage_forward)(c)
-        return c
+        return c,position
 
     def meshgrid(self, h, w):
         y = torch.arange(0, h).view(h, 1, 1).repeat(1, w, 1)
@@ -753,7 +755,6 @@ class LatentDiffusion(DDPM):
             tmp_mask[tmp_mask >= 0.5] = 1
             total_dict['mask'] = tmp_mask
             # masked_img = tmp_mask
-
         encoder_posterior = self.encode_first_stage(x)
         z = self.get_first_stage_encoding(encoder_posterior).detach()
 
@@ -763,52 +764,54 @@ class LatentDiffusion(DDPM):
                 cond_key = self.cond_stage_key
             if cond_key != self.first_stage_key:
                 if cond_key in ['caption', 'coordinates_bbox']:
-                    xc = batch[cond_key] #xc=['a rendition of the *', 'a close-up photo of the *', 'the photo of a *']
+                    xc = batch[cond_key] #执行这条：xc=['a rendition of the *', 'a close-up photo of the *', 'the photo of a *']
                 elif cond_key == 'class_label':
                     xc = batch
                 else:
                     xc = super().get_input(batch, cond_key).to(self.device)
             else:
                 xc = x
-            if not self.cond_stage_trainable or force_c_encode:
+            if not self.cond_stage_trainable or force_c_encode: #不执行
                 if isinstance(xc, dict) or isinstance(xc, list):
-                    c = self.get_learned_conditioning(xc,x=masked_img,name=name)
+                    # import pudb; pudb.set_trace()
+                    c,position = self.get_learned_conditioning(xc,x=masked_img,name=name)
+                    total_dict['position']=position
                 else:
-                    c = self.get_learned_conditioning(xc.to(self.device),x=masked_img,name=name)
-            else:
+                    c,position = self.get_learned_conditioning(xc.to(self.device),x=masked_img,name=name)
+            else: #执行这条
                 c = xc
-            if bs is not None:
+            if bs is not None: #不执行
                 c = c[:bs]
 
-            if self.use_positional_encodings:
+            if self.use_positional_encodings:#不执行
                 pos_x, pos_y = self.compute_latent_shifts(batch)
                 ckey = __conditioning_keys__[self.model.conditioning_key]
                 c = {ckey: c, 'pos_x': pos_x, 'pos_y': pos_y}
 
-        else:
+        else: #不执行
             c = None
             xc = None
             if self.use_positional_encodings:
                 pos_x, pos_y = self.compute_latent_shifts(batch)
                 c = {'pos_x': pos_x, 'pos_y': pos_y}
         out = [z, c,total_dict]
-        if return_first_stage_outputs:
+        if return_first_stage_outputs:#不执行
             xrec = self.decode_first_stage(z)
             out.extend([x, xrec])
-        if return_original_cond:
+        if return_original_cond:#不执行
             out.append(xc)
         return out
 
     @torch.no_grad()
     def decode_first_stage(self, z, predict_cids=False, force_not_quantize=False):
-        if predict_cids:
+        if predict_cids: #不执行
             if z.dim() == 4:
                 z = torch.argmax(z.exp(), dim=1).long()
             z = self.first_stage_model.quantize.get_codebook_entry(z, shape=None)
             z = rearrange(z, 'b h w c -> b c h w').contiguous()
 
         z = 1. / self.scale_factor * z
-        if hasattr(self, "split_input_params"): 
+        if hasattr(self, "split_input_params"): #不执行
             if self.split_input_params["patch_distributed_vq"]:
                 ks = self.split_input_params["ks"]  # eg. (128, 128)
                 stride = self.split_input_params["stride"]  # eg. (64, 64)
@@ -853,20 +856,20 @@ class LatentDiffusion(DDPM):
                     return self.first_stage_model.decode(z)
 
         else:
-            if isinstance(self.first_stage_model, VQModelInterface): #False 
+            if isinstance(self.first_stage_model, VQModelInterface): #False 不执行
                 return self.first_stage_model.decode(z, force_not_quantize=predict_cids or force_not_quantize)
             else:
                 return self.first_stage_model.decode(z)
 
     def decode_first_stage_with_grad(self, z, predict_cids=False, force_not_quantize=False):
-        if predict_cids: #
+        if predict_cids: #不执行
             if z.dim() == 4:
                 z = torch.argmax(z.exp(), dim=1).long()
             z = self.first_stage_model.quantize.get_codebook_entry(z, shape=None)
             z = rearrange(z, 'b h w c -> b c h w').contiguous()
 
         z = 1. / self.scale_factor * z
-        if hasattr(self, "split_input_params"): #
+        if hasattr(self, "split_input_params"): #不执行
             if self.split_input_params["patch_distributed_vq"]:
                 ks = self.split_input_params["ks"]  # eg. (128, 128)
                 stride = self.split_input_params["stride"]  # eg. (64, 64)
@@ -911,7 +914,7 @@ class LatentDiffusion(DDPM):
                     return self.first_stage_model.decode(z)
 
         else:
-            if isinstance(self.first_stage_model, VQModelInterface): #False 
+            if isinstance(self.first_stage_model, VQModelInterface): #False 不执行
                 return self.first_stage_model.decode(z, force_not_quantize=predict_cids or force_not_quantize)
             else:
                 return self.first_stage_model.decode(z)
@@ -977,7 +980,7 @@ class LatentDiffusion(DDPM):
 
     @torch.no_grad()
     def encode_first_stage(self, x):
-        if hasattr(self, "split_input_params"): #
+        if hasattr(self, "split_input_params"): #不执行
             if self.split_input_params["patch_distributed_vq"]:
                 ks = self.split_input_params["ks"]  # eg. (128, 128)
                 stride = self.split_input_params["stride"]  # eg. (64, 64)
@@ -1012,7 +1015,7 @@ class LatentDiffusion(DDPM):
 
             else:
                 return self.first_stage_model.encode(x)
-        else: #
+        else: #执行这个
             return self.first_stage_model.encode(x)
 
     def shared_step(self, batch, **kwargs):
@@ -1022,12 +1025,11 @@ class LatentDiffusion(DDPM):
 
     def forward(self, x, c, *args,mask=None,masked_img=None, name=None,**kwargs):
         t = torch.randint(0, self.num_timesteps, (x.shape[0],), device=self.device).long()
-        #print(self.device,'gggggggggggggggggggggg')
-        if self.model.conditioning_key is not None: #
+        if self.model.conditioning_key is not None: #执行
             assert c is not None
-            if self.cond_stage_trainable:#
-                c = self.get_learned_conditioning(c,x=masked_img,name=name)
-            if self.shorten_cond_schedule:  # TODO: drop this option 
+            if self.cond_stage_trainable:#执行
+                c,_ = self.get_learned_conditioning(c,x=masked_img,name=name)
+            if self.shorten_cond_schedule:  # TODO: drop this option 不执行
                 tc = self.cond_ids[t].to(self.device)
                 c = self.q_sample(x_start=c, t=tc, noise=torch.randn_like(c.float()))
         return self.p_losses(x, c, t, *args,mask=mask, **kwargs)
@@ -1042,7 +1044,7 @@ class LatentDiffusion(DDPM):
 
         return [rescale_bbox(b) for b in bboxes]
 
-    def apply_model(self, x_noisy, t, cond, return_ids=False,mask=None):
+    def apply_model(self, x_noisy, t, cond, return_ids=False,mask=None,weight_map=None,**kwargs):
 
         if isinstance(cond, dict):
             # hybrid case, cond is exptected to be a dict
@@ -1053,7 +1055,7 @@ class LatentDiffusion(DDPM):
             key = 'c_concat' if self.model.conditioning_key == 'concat' else 'c_crossattn'
             cond = {key: cond}
 
-        if hasattr(self, "split_input_params"):#
+        if hasattr(self, "split_input_params"):#不执行
             assert len(cond) == 1  # todo can only deal with one conditioning atm
             assert not return_ids  
             ks = self.split_input_params["ks"]  # eg. (128, 128)
@@ -1115,7 +1117,7 @@ class LatentDiffusion(DDPM):
                 adapted_cond = torch.stack([torch.cat([cut_cond, p], dim=1) for p in patch_limits_tknzd])
                 adapted_cond = rearrange(adapted_cond, 'l b n -> (l b) n')
                 print(adapted_cond.shape)
-                adapted_cond = self.get_learned_conditioning(adapted_cond)
+                adapted_cond,_ = self.get_learned_conditioning(adapted_cond)
                 print(adapted_cond.shape)
                 adapted_cond = rearrange(adapted_cond, '(l b) n d -> l b n d', l=z.shape[-1])
                 print(adapted_cond.shape)
@@ -1137,8 +1139,8 @@ class LatentDiffusion(DDPM):
             # stitch crops together
             x_recon = fold(o) / normalization
 
-        else:#
-            x_recon = self.model(x_noisy, t, **cond,mask=mask)
+        else:#执行这个
+            x_recon = self.model(x_noisy, t, **cond,mask=mask,weight_map=weight_map,**kwargs)
 
         if isinstance(x_recon, tuple) and not return_ids:
             return x_recon[0]
@@ -1491,7 +1493,7 @@ class LatentDiffusion(DDPM):
                 denoise_grid = self._get_denoise_row_from_list(z_denoise_row)
                 log["denoise_row"] = denoise_grid
 
-            uc = self.get_learned_conditioning(len(c) * [""])
+            uc,_ = self.get_learned_conditioning(len(c) * [""])
             sample_scaled, _ = self.sample_log(cond=c,
                                                batch_size=N,
                                                ddim=use_ddim,
@@ -1508,22 +1510,29 @@ class LatentDiffusion(DDPM):
                     samples, z_denoise_row = self.sample_log(cond=c,batch_size=N,ddim=use_ddim,
                                                              ddim_steps=ddim_steps,eta=ddim_eta,
                                                              quantize_denoised=True)
+                    # samples, z_denoise_row = self.sample(cond=c, batch_size=N, return_intermediates=True,
+                    #                                      quantize_denoised=True)
                 x_samples = self.decode_first_stage(samples.to(self.device),total_dict['mask'])
                 log["samples_x0_quantized"] = x_samples
 
         if inpaint:
+            # make a simple center square
             b, h, w = z.shape[0], z.shape[2], z.shape[3]
+
             with self.ema_scope("Plotting Inpaint"):
                 if adaptive_mask:
                     samples, z_denoise_row = self.sample_log(cond=c,batch_size=N,ddim=use_ddim, eta=ddim_eta,ddim_steps=ddim_steps,
-                                                             x0=z[:N], mask=mask,adaptive_mask=adaptive_mask,
+                                                             x0=z[:N], mask=mask,embedding_position=total_dict['position'],adaptive_mask=adaptive_mask,
                                                              embedding_manager=self.cond_stage_model,decoder=self.decode_first_stage)
                 else:
                     samples, _ = self.sample_log(cond=c,batch_size=N,ddim=use_ddim, eta=ddim_eta,
                                             ddim_steps=ddim_steps, x0=z[:N], mask=mask,adaptive_mask=adaptive_mask)
+            #samples=samples*mask+(1-mask)*z[:N]
             x_samples = self.decode_first_stage(samples.to(self.device),)
+
             log["samples_inpainting"] = x_samples
             log["mask"] = mask
+
 
         if plot_progressive_rows:
             with self.ema_scope("Plotting Progressives"):
@@ -1668,7 +1677,7 @@ class DiffusionWrapper(pl.LightningModule):
         self.conditioning_key = conditioning_key
         assert self.conditioning_key in [None, 'concat', 'crossattn', 'hybrid', 'adm']
 
-    def forward(self, x, t, c_concat: list = None, c_crossattn: list = None,mask=None):
+    def forward(self, x, t, c_concat: list = None, c_crossattn: list = None,**kwargs):
         if self.conditioning_key is None:
             out = self.diffusion_model(x, t)
         elif self.conditioning_key == 'concat':
@@ -1676,7 +1685,7 @@ class DiffusionWrapper(pl.LightningModule):
             out = self.diffusion_model(xc, t)
         elif self.conditioning_key == 'crossattn':#这个
             cc = torch.cat(c_crossattn, 1)
-            out = self.diffusion_model(x, t, context=cc,mask=mask)
+            out = self.diffusion_model(x, t, context=cc,**kwargs)
         elif self.conditioning_key == 'hybrid':
             xc = torch.cat([x] + c_concat, dim=1)
             cc = torch.cat(c_crossattn, 1)
