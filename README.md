@@ -51,6 +51,7 @@ have relatively fewer samples.)
 [//]: # (| Checkpoints for anomaly localization     |     [Google Drive]&#40;https://drive.google.com/drive/folders/1kcOdfQrvWeJyliGTYJ4HXKU5ccfn7t96?usp=sharing&#41;         |    [百度网盘]&#40;https://pan.baidu.com/s/1Xoe__ODeq_YrVc9lA-7B_A&#41; &#40;提取码: 0306&#41;      |)
 
 [//]: # (| Checkpoints for anomaly classification   |              |          |)
+
 | Data and Models                          | Download                                                                                             | Place at                 |
 |------------------------------------------|------------------------------------------------------------------------------------------------------|--------------------------|
 | Generated data                           | [Google Drive](https://drive.google.com/file/d/1yzsZdW_xS-v4GprE2KQmQ1EbIWyGyFcG/view?usp=sharing)   | -                        |
