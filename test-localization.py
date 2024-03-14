@@ -31,7 +31,7 @@ def test(obj_names, mvtec_path, checkpoint_path):
         model_seg.load_state_dict(torch.load(os.path.join(checkpoint_path, run_name+".pckl"), map_location='cuda:0'))
         model_seg.cuda()
         model_seg.eval()
-        dataset = MVTecDRAEMTestDataset_partial(mvtec_path + obj_name + "/test/", resize_shape=[img_dim, img_dim])
+        dataset = MVTecDRAEMTestDataset_partial(mvtec_path + '/'+obj_name + "/test/", resize_shape=[img_dim, img_dim])
         dataloader = DataLoader(dataset, batch_size=1,
                                 shuffle=False, num_workers=0)
 
@@ -147,9 +147,9 @@ if __name__=="__main__":
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('--gpu_id',default=0, type=int)
-    parser.add_argument('--sample_name',type=str, required=True)
-    parser.add_argument('--data_path', action='store', type=str, required=True)
-    parser.add_argument('--checkpoint_path', action='store', type=str, required=True)
+    parser.add_argument('--sample_name',type=str, default='all')
+    parser.add_argument('--mvtec_path', action='store', type=str, required=True)
+    parser.add_argument('--checkpoint_path',  type=str, default='checkpoints/localization')
 
     args = parser.parse_args()
     if args.sample_name=='all':
@@ -174,5 +174,5 @@ if __name__=="__main__":
 
 
     with torch.cuda.device(args.gpu_id):
-        test(obj_list,args.data_path, args.checkpoint_path)
+        test(obj_list,args.mvtec_path, args.checkpoint_path)
 

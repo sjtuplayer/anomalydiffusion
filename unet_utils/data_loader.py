@@ -74,7 +74,7 @@ class MVTec_Anomaly_Detection(Dataset):
         self.recon=recon
         self.good_path='%s/%s/train/good'%(args.mvtec_path,sample_name)
         self.good_files=[os.path.join(self.good_path,i) for i in os.listdir(self.good_path)]
-        self.root_dir = '%s/%s'%(args.data_path,sample_name)
+        self.root_dir = '%s/%s'%(args.generated_data_path,sample_name)
         self.anomaly_names=os.listdir(self.root_dir)
         if anomaly_id!=None:
             self.anomaly_names=self.anomaly_names[anomaly_id:anomaly_id+1]
@@ -133,7 +133,8 @@ class MVTec_Anomaly_Detection(Dataset):
 
 class MVTec_classification_train(Dataset):
     def __init__(self, args,sample_name):
-        self.root_dir = '%s/%s'%(args.mvtec_path,sample_name)
+        self.root_dir = '%s/%s'%(args.generated_data_path,sample_name)
+        self.root_dir = '%s/%s'%(args.generated_data_path,sample_name)
         self.anomaly_names=os.listdir(self.root_dir)
         self.img_paths=[]
         self.labels=[]

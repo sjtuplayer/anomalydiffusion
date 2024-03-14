@@ -52,13 +52,13 @@ have relatively fewer samples.)
 
 [//]: # (| Checkpoints for anomaly classification   |              |          |)
 
-| Data and Models                          | Download                                                                                             | Place at                 |
-|------------------------------------------|------------------------------------------------------------------------------------------------------|--------------------------|
-| Generated data                           | [Google Drive](https://drive.google.com/file/d/1yzsZdW_xS-v4GprE2KQmQ1EbIWyGyFcG/view?usp=sharing)   | -                        |
-| Checkpoints for anomaly generation model | [Google Drive](https://drive.google.com/drive/folders/17SA6QWGH4Mxk4lTIDm2DpG0N3PcpWicl?usp=sharing) | logs/anomaly-checkpoints |                                                                                   |
-| Checkpoints for mask generation model    | [Google Drive](https://drive.google.com/drive/folders/1LPJCd2dwocPHnA-Ex6d9aHFVk1JGHZ7Q?usp=sharing) | logs/mask-checkpoints    |
-| Checkpoints for anomaly localization     | [Google Drive](https://drive.google.com/drive/folders/1PYq1I00JBij9J7IvNdYsQWLFnY0eQ20v?usp=sharing) | -                        |
-| Checkpoints for anomaly classification   |                                                                                                      | -                        |
+| Data and Models                          | Download                                                                                             | Place at                   |
+|------------------------------------------|------------------------------------------------------------------------------------------------------|----------------------------|
+| Generated data                           | [Google Drive](https://drive.google.com/file/d/1yzsZdW_xS-v4GprE2KQmQ1EbIWyGyFcG/view?usp=sharing)   | -                          |
+| Checkpoints for anomaly generation model | [Google Drive](https://drive.google.com/drive/folders/17SA6QWGH4Mxk4lTIDm2DpG0N3PcpWicl?usp=sharing) | logs/anomaly-checkpoints   |                                                                                   |
+| Checkpoints for mask generation model    | [Google Drive](https://drive.google.com/drive/folders/1LPJCd2dwocPHnA-Ex6d9aHFVk1JGHZ7Q?usp=sharing) | logs/mask-checkpoints      |
+| Checkpoints for anomaly localization     | [Google Drive](https://drive.google.com/drive/folders/1PYq1I00JBij9J7IvNdYsQWLFnY0eQ20v?usp=sharing) | checkpoints/localization   |
+| Checkpoints for anomaly classification   | [Google Drice](https://drive.google.com/drive/folders/1XhSaDZJQb9d6VYkf5GU3C8a4XgjGfB0N?usp=sharing)                                                                                     | checkpoints/classification |
 
 ## Overview
 Anomalydiffusion is a few-shot anomaly generation model for anomaly inspection (detection, localization and classification). 
@@ -132,13 +132,14 @@ CUDA_VISIBLE_DEVICES=$gpu_id python run-mvtec.py --data_path=$path_to_mvtec_data
 After generating anomalous image-mask pairs,
 you can train and test the **anomaly detection model** (for both anomlay detection and localization) by:
 ```
-python train-unet.py --data_path $path_to_the_generated_data  --save_path ./ --mvtec_path=$path_to_mvtec --sample_name=capsule
-python test-unet.py --data_path $path_to_mvtec --checkpoint_path $path_to_ckpt --sample_name=all
+python train-localization.py --generated_data_path $path_to_the_generated_data  --mvtec_path=$path_to_mvtec
+python test-localization.py --generated_data_path $path_to_mvtec
 ```
 
 you can train and test the **anomaly classification model** by:
 ```
-python train_classification.py --mvtec_path=$path_to_mvtec
+python train-classification.py --mvtec_path=$path_to_mvtec --generated_data_path=$path_to_the_generated_data
+python test-classification.py --mvtec_path=$path_to_mvtec --generated_data_path=$path_to_the_generated_data
 ```
 ## Citation
 

@@ -32,10 +32,9 @@ def test(args,obj_name, model,anomaly_names):
         prediction = torch.argmax(y_pred, 1)
         correct = (prediction == label).sum().float()
         print("Accuracy: %.4f"%(correct/len(label)))
-    return correct/len(label)
 
 
-def train_on_device(obj_names, args):
+def test_on_device(obj_names, args):
 
     if not os.path.exists(args.checkpoint_path):
         os.makedirs(args.checkpoint_path)
@@ -50,34 +49,8 @@ def train_on_device(obj_names, args):
         model = resnet34(pretrained=True, progress=True)
         model.fc = nn.Linear(model.fc.in_features, class_num)
         model=model.cuda()
-
-        optimizer = torch.optim.Adam([{"params": model.parameters(), "lr": args.lr}])
-
-        scheduler = optim.lr_scheduler.MultiStepLR(optimizer,[args.epochs*0.8,args.epochs*0.9],gamma=0.2, last_epoch=-1)
-
-        criterion = nn.CrossEntropyLoss()
-        dataloader = DataLoader(dataset, batch_size=args.bs,
-                                shuffle=True, num_workers=16)
-        max_acc=0
-        for epoch in range(args.epochs):
-            model.train()
-            print("Epoch: "+str(epoch),end=' ')
-            for i_batch, sample_batched in enumerate(dataloader):
-                image,label=sample_batched
-                image=image.cuda()
-                label=label.cuda()
-                y_pred=model(image)
-                loss=criterion(y_pred,label)
-                optimizer.zero_grad()
-
-                loss.backward()
-                optimizer.step()
-
-            scheduler.step()
-            acc = test(args,obj_name, model, anomaly_names)
-            if acc> max_acc:
-                max_acc=acc
-                torch.save(model.state_dict(), os.path.join(args.checkpoint_path, run_name+".pckl"))
+        model.load_state_dict(torch.load(os.path.join(args.checkpoint_path,run_name+'.pckl')))
+        test(args,obj_name, model, anomaly_names)
 
 if __name__=="__main__":
     import argparse
@@ -123,5 +96,5 @@ if __name__=="__main__":
     else:
         picked_classes = obj_batch
 
-    train_on_device(picked_classes, args)
-#python train-classification.py
+    test_on_device(picked_classes, args)
+#python test_classification.py

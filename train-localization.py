@@ -30,7 +30,7 @@ def test(args,obj_name, model_seg):
     obj_auroc_image_list = []
     img_dim = 256
     model_seg.eval()
-    dataset = MVTecDRAEMTestDataset_partial(mvtec_path + obj_name + "/test/", resize_shape=[img_dim, img_dim])
+    dataset = MVTecDRAEMTestDataset_partial(mvtec_path +'/'+ obj_name + "/test/", resize_shape=[img_dim, img_dim])
     dataloader = DataLoader(dataset, batch_size=1,
                             shuffle=False, num_workers=0)
 
@@ -107,9 +107,8 @@ def train_on_device(obj_names, args):
 
     for obj_name in obj_names:
 
-        run_name = 'DRAEM_test_'+str(args.lr)+'_'+str(args.epochs)+'_bs'+str(args.bs)+"_"+obj_name+'_'
+        run_name = obj_name
 
-        visualizer = TensorboardVisualizer(log_dir=os.path.join(args.log_path, run_name+"/"))
         model_seg = DiscriminativeSubNetwork(in_channels=3, out_channels=2)
         model_seg.cuda()
         model_seg.apply(weights_init)
@@ -133,45 +132,29 @@ def train_on_device(obj_names, args):
             for i_batch, sample_batched in enumerate(dataloader):
                 aug_gray_batch = sample_batched["image"].cuda()
                 anomaly_mask = sample_batched["mask"].cuda()
-
-
                 out_mask = model_seg(aug_gray_batch)
                 out_mask_sm = torch.softmax(out_mask, dim=1)
-
-
                 segment_loss = loss_focal(out_mask_sm, anomaly_mask)
-
                 loss = segment_loss
-
                 optimizer.zero_grad()
-
                 loss.backward()
                 optimizer.step()
-
-                if args.visualize and n_iter % 200 == 0:
-                    visualizer.plot_loss(segment_loss, n_iter, loss_name='segment_loss')
-                if args.visualize and n_iter % 400 == 0:
-                    t_mask = out_mask_sm[:, 1:, :, :]
-                    visualizer.visualize_image_batch(aug_gray_batch, n_iter, image_name='batch_augmented')
-                    visualizer.visualize_image_batch(anomaly_mask, n_iter, image_name='mask_target')
-                    visualizer.visualize_image_batch(t_mask, n_iter, image_name='mask_out')
                 n_iter +=1
-
             scheduler.step()
 
             auroc,auroc_px,ap_px,pro_px=test(args,obj_name, model_seg)
             sum_metric=auroc+auroc_px+ap_px+pro_px
             if sum_metric>last_sum:
-                torch.save(model_seg.state_dict(), os.path.join(args.save_path, run_name + "_seg.pckl"))
+                torch.save(model_seg.state_dict(), os.path.join(args.save_path, run_name + ".pckl"))
                 last_sum=sum_metric
 
 if __name__=="__main__":
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--sample_name', type=str, required=True)
-    parser.add_argument('--data_path', action='store', type=str, required=True)
-    parser.add_argument('--save_path', action='store', type=str, required=True)
+    parser.add_argument('--sample_name', type=str, default='all')
+    parser.add_argument('--generated_data_path', action='store', type=str, required=True)
+    parser.add_argument('--save_path', default='checkpoints/localization', type=str)
     parser.add_argument('--mvtec_path', action='store', type=str, required=True)
     parser.add_argument('--bs', action='store', type=int,default=8, required=False)
     parser.add_argument('--lr', action='store', type=float,default=0.0001, required=False)
