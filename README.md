@@ -54,7 +54,7 @@ have relatively fewer samples.)
 
 | Data and Models                          | Download                                                                                             | Place at                   |
 |------------------------------------------|------------------------------------------------------------------------------------------------------|----------------------------|
-| Generated data                           | [Google Drive](https://drive.google.com/file/d/1yzsZdW_xS-v4GprE2KQmQ1EbIWyGyFcG/view?usp=sharing)   | -                          |
+| Generated data                           | [Google Drive](https://drive.google.com/file/d/1GaA3oGnYYNK62FagQubQKS5YcgmCG8PT/view?usp=sharing)   | -                          |
 | Checkpoints for anomaly generation model | [Google Drive](https://drive.google.com/drive/folders/17SA6QWGH4Mxk4lTIDm2DpG0N3PcpWicl?usp=sharing) | logs/anomaly-checkpoints   |                                                                                   |
 | Checkpoints for mask generation model    | [Google Drive](https://drive.google.com/drive/folders/1LPJCd2dwocPHnA-Ex6d9aHFVk1JGHZ7Q?usp=sharing) | logs/mask-checkpoints      |
 | Checkpoints for anomaly localization     | [Google Drive](https://drive.google.com/drive/folders/1PYq1I00JBij9J7IvNdYsQWLFnY0eQ20v?usp=sharing) | checkpoints/localization   |
