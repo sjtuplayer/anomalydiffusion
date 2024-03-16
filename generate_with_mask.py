@@ -100,7 +100,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--adaptive_mask",
-        action="store_true", default=True,
+        action="store_true", default=False,
         help='whether use adaptive attention reweighting',
     )
 
@@ -132,6 +132,8 @@ if __name__ == "__main__":
     with torch.no_grad():
         for epoch in range(1000):
             for idx, batch in enumerate(dataloader):
+                if cnt>500:
+                    exit()
                 with model.ema_scope():
                     mask=batch['mask'].cpu()
                     ori_images=batch['image'].permute(0,3,1,2)

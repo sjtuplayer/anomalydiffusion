@@ -1520,13 +1520,16 @@ class LatentDiffusion(DDPM):
             b, h, w = z.shape[0], z.shape[2], z.shape[3]
 
             with self.ema_scope("Plotting Inpaint"):
-                if adaptive_mask:
-                    samples, z_denoise_row = self.sample_log(cond=c,batch_size=N,ddim=use_ddim, eta=ddim_eta,ddim_steps=ddim_steps,
+                samples, z_denoise_row = self.sample_log(cond=c,batch_size=N,ddim=use_ddim, eta=ddim_eta,ddim_steps=ddim_steps,
                                                              x0=z[:N], mask=mask,embedding_position=total_dict['position'],adaptive_mask=adaptive_mask,
                                                              embedding_manager=self.cond_stage_model,decoder=self.decode_first_stage)
-                else:
-                    samples, _ = self.sample_log(cond=c,batch_size=N,ddim=use_ddim, eta=ddim_eta,
-                                            ddim_steps=ddim_steps, x0=z[:N], mask=mask,adaptive_mask=adaptive_mask)
+                # if adaptive_mask:
+                #     # samples, z_denoise_row = self.sample_log(cond=c,batch_size=N,ddim=use_ddim, eta=ddim_eta,ddim_steps=ddim_steps,
+                #     #                                          x0=z[:N], mask=mask,embedding_position=total_dict['position'],adaptive_mask=adaptive_mask,
+                #     #                                          embedding_manager=self.cond_stage_model,decoder=self.decode_first_stage)
+                # else:
+                #     samples, _ = self.sample_log(cond=c,batch_size=N,ddim=use_ddim, eta=ddim_eta,
+                #                             ddim_steps=ddim_steps, x0=z[:N], mask=mask,adaptive_mask=adaptive_mask)
             #samples=samples*mask+(1-mask)*z[:N]
             x_samples = self.decode_first_stage(samples.to(self.device),)
 

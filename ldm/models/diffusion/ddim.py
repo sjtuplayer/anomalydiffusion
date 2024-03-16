@@ -147,27 +147,27 @@ class DDIMSampler(object):
                 assert x0 is not None
                 img_orig = self.model.q_sample(x0, ts)  # TODO: deterministic forward pass?
 
-                if ts[0]>-10:
+                new_mask = mask
+                if adaptive_mask:
                     if len(timesteps)==50:
                         dialation = Dilation2d(m=int((ts[0] + 100) * 16// 1000))
                     else:
                         dialation = Dilation2d(m=int((ts[0] + 100) * 8 // 1000))
                     new_mask=dialation(mask)
-                    new_mask=mask
-                    if adaptive_mask:
-                        dis_map = ((new_mask * (img - x0)) ** 2).mean(dim=1)
-                        dis_map = torch.where(dis_map == 0, -1, dis_map)   #b*32*32
-                        dis_map=1/dis_map
-                        dis_map=new_mask.squeeze(1)*dis_map
-                        bs=dis_map.size(0)
-                        weight_map =1024* dis_map / (
-                            dis_map.view(bs, -1).sum(dim=1).view(bs, 1, 1))#replace the softmax function in the paper with mean operation
-                        for tmpi in range(bs):
-                            if dis_map[tmpi].view(-1).sum()==0:
-                                weight_map[tmpi,:,:]=1
-                    img = img * new_mask + (1 - new_mask) * img_orig
-                else:
-                    img = img * mask + (1. - mask) * img_orig
+                    dis_map = ((new_mask * (img - x0)) ** 2).mean(dim=1)
+                    dis_map = torch.where(dis_map == 0, -1, dis_map)   #b*32*32
+                    dis_map=1/dis_map
+                    dis_map=new_mask.squeeze(1)*dis_map
+                    bs=dis_map.size(0)
+                    weight_map = new_mask.view(bs, -1).sum(dim=1).view(bs, 1, 1) * dis_map / (
+                        dis_map.view(bs, -1).sum(dim=1).view(bs, 1, 1))  # replace the softm
+                    weight_map = torch.where(weight_map == 0, 1, weight_map)
+                    weight_map = torch.where(weight_map <1, 1, weight_map)
+                    weight_map = torch.where(weight_map > 1.5, 1.5, weight_map)
+                    for tmpi in range(bs):
+                        if dis_map[tmpi].view(-1).sum()==0:
+                            weight_map[tmpi,:,:]=1
+                img = img * new_mask + (1 - new_mask) * img_orig
             outs = self.p_sample_ddim(img, cond, ts, index=index, use_original_steps=ddim_use_original_steps,
                                       quantize_denoised=quantize_denoised, temperature=temperature,
                                       noise_dropout=noise_dropout, score_corrector=score_corrector,

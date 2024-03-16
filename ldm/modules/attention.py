@@ -177,26 +177,8 @@ class CrossAttention(nn.Module):
         v = self.to_v(context)
         q, k, v = map(lambda t: rearrange(t, 'b n (h d) -> (b h) n d', h=h), (q, k, v))
 
-        sim = einsum('b i d, b j d -> b i j', q, k) * self.scale #i是pixel位置，j是tocken数
-        # if exists(mask):
-        #     x_width=int(math.sqrt(x.size(1)))
-        #     resize=transforms.Resize((x_width,x_width))
-        #     mask=resize(mask)
-        #     mask[mask < 0.5] = 0
-        #     mask[mask >= 0.5] = 1
-        #     # print(x.shape, q.shape, k.shape, v.shape)
-        #     # print(sim.shape, mask.shape, x_width,mask.mean())
-        #     mask=mask.bool()
-        #     mask = rearrange(mask, 'b ... -> b (...)')
-        #     max_neg_value = -torch.finfo(sim.dtype).max
-        #     mask = repeat(mask, 'b j -> (b h) () j', h=h)
-        #     mask=mask.repeat(1,sim.size(2),1).permute(0,2,1)            #32,1024,77
-        #     sim=mask.float()
-        #     #sim.masked_fill_(~mask, max_neg_value)
+        sim = einsum('b i d, b j d -> b i j', q, k) * self.scale
         if exists(weight_map):
-            # file_id = len(os.listdir('generated_dataset-tmp-AAR/wood/color/attention_map'))
-            # save_image(weight_map.unsqueeze(1), 'generated_dataset-tmp-AAR/wood/color/attention_map/%d.jpg' % file_id,
-            #            normalize=True)
             x_width = int(math.sqrt(x.size(1)))
             resize = transforms.Resize((x_width, x_width))
             weight_map = resize(weight_map)
@@ -207,26 +189,7 @@ class CrossAttention(nn.Module):
                 weight_map[bi*h:bi*h+h,:,1:embedding_position[bi,0].int()]=1
                 weight_map[bi * h:bi * h + h, :, embedding_position[bi,1].int():] = 1
             sim=sim*weight_map
-            #sim.masked_fill_(~mask, max_neg_value)
-        #print(sim.shape,v.shape)
         attn = sim.softmax(dim=-1)
-        # print(attn[:,:,1].sum())
-        # print(attn[:,1,:].sum())
-        # if exists(mask):
-        #     attn.masked_fill_(~mask, 0)
-        # try:
-        #     save_attn = rearrange(attn, '(b h) n d -> b n (h d)', h=h)
-        #     save_attn = save_attn[:, :, 5:10]
-        #     save_attn = rearrange(save_attn, 'b n d -> (b d) n')
-        #     print(save_attn.shape)
-        #     save_attn = save_attn.reshape(save_attn.size(0), 1, 32, 32)
-        #     print(save_attn.min(),save_attn.max())
-        #     for i in range(save_attn.size(0)):
-        #         save_attn[i] = (save_attn[i] - save_attn[i].min()) / (save_attn[i].max() - save_attn[i].min())
-        #         save_image(save_attn, 'attn2.jpg')
-        # except:
-        #     pass
-        # exit()
         out = einsum('b i j, b j d -> b i d', attn, v)
         out = rearrange(out, '(b h) n d -> b n (h d)', h=h)
         return self.to_out(out)
