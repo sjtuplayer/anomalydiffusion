@@ -730,25 +730,20 @@ class LatentDiffusion(DDPM):
             mask = mask.squeeze()
         masked_img = None
         if self.spatial_encoder_and_embedding:
-            tmp_mask = mask.unsqueeze(1)
+            tmp_mask = mask.unsqueeze(1).clone()
             tmp_mask[tmp_mask < 0.5] = 0
             tmp_mask[tmp_mask >= 0.5] = 1
+
             if self.data_enhance is not None:
                 if random.random()<0.5:
                     x,tmp_mask=self.data_enhance(x,tmp_mask)
             x=self.resize256(x)
             tmp_mask=self.resize256(tmp_mask)
             total_dict['mask'] = tmp_mask
+            masked_img = tmp_mask.clone()
+            total_dict['mask_cond'] = masked_img
+
             # masked_img = (x + 1) / 2 * tmp_mask + torch.zeros_like(x) * (1 - tmp_mask)
-            masked_img=tmp_mask.clone()
-            total_dict['masked_img'] = masked_img
-        elif self.spatial_encoder:
-            tmp_mask = mask.unsqueeze(1)
-            tmp_mask[tmp_mask < 0.5] = 0
-            tmp_mask[tmp_mask >= 0.5] = 1
-            masked_img = (x + 1) / 2 * tmp_mask + torch.zeros_like(x) * (1 - tmp_mask)
-            total_dict['mask'] = tmp_mask
-            total_dict['masked_img']=masked_img
         elif mask is not None:
             tmp_mask = mask.unsqueeze(1)
             tmp_mask[tmp_mask < 0.5] = 0
@@ -1023,12 +1018,12 @@ class LatentDiffusion(DDPM):
         loss = self(x, c,**total_dict)
         return loss
 
-    def forward(self, x, c, *args,mask=None,masked_img=None, name=None,**kwargs):
+    def forward(self, x, c, *args,mask=None,mask_cond=None, name=None,**kwargs):
         t = torch.randint(0, self.num_timesteps, (x.shape[0],), device=self.device).long()
         if self.model.conditioning_key is not None: #执行
             assert c is not None
             if self.cond_stage_trainable:#执行
-                c,_ = self.get_learned_conditioning(c,x=masked_img,name=name)
+                c,_ = self.get_learned_conditioning(c,x=mask_cond,name=name)
             if self.shorten_cond_schedule:  # TODO: drop this option 不执行
                 tc = self.cond_ids[t].to(self.device)
                 c = self.q_sample(x_start=c, t=tc, noise=torch.randn_like(c.float()))
@@ -1438,6 +1433,7 @@ class LatentDiffusion(DDPM):
                                            bs=N)
         if 'mask' in total_dict:
             mask=total_dict['mask']
+            log["mask"] = mask
             reisze_32=transforms.Resize((32,32))
             mask=reisze_32(mask)
             mask[mask < 0.5] = 0
@@ -1534,7 +1530,7 @@ class LatentDiffusion(DDPM):
             x_samples = self.decode_first_stage(samples.to(self.device),)
 
             log["samples_inpainting"] = x_samples
-            log["mask"] = mask
+            # log["mask"] = mask
 
 
         if plot_progressive_rows:
